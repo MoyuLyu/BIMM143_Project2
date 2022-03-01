@@ -1,0 +1,37 @@
+---
+title: "BIMM143_Project2_R Notebook"
+output: html_notebook
+---
+# Introduction  
+### {5 points for specific, measurable, and clear scientific question}  
+Scientific Question: What is the mutation in the huntingtin (HTT) gene that leads to the symptoms of Huntington's disease, and what are the consequences of such mutation?  
+
+### {5 points for background on the protein/gene/species of interest and where the data is sourced from}  
+Huntington's disease, affecting 1 per 7300 people, is one of the most prevalent monogenic neurological disorder in the world (Fisher, 2014). The cause of this disease involves in a mutation in the Huntingtin (HTT) gene, which lead to an exceptionally long expansion of CAG trinucleotide repeat (MacDonald, 1993). This mutation results in a structural change in the Huntingtin (Htt) protein, a protein which is ubiquitously expressed throughout the body but its major function remains unknown. 
+<br>
+Although the specific function of the Htt protein is still a mystery, recent researches have revealed interaction of this protein with other proteins that are involved in the process of tranlsation, such as Prkra, Rps6, and Gnb2l1 (Culver, 2012). Specifically, introducing the mutated Htt protein can increase ribosome stalling, while removing it rescues the speed of translation (Eshraghi, 2021). Other researches have shown that the expression of mutated HTT gene could lead to translation deficit in multiple animal models (Joag, 2019), and can cause differential expression of genes involving in multiple functions such as protein folding and ribosome biogenesis (Tauber, 2011). The question here is, what specific genes are up-regulated or down-regulated which leads to the dysfunction of protein synthesis in subjects with mutated HTT gene.
+
+### {5 points for clear, specific, and measurable scientific hypothesis that is in the form of an if-then statement}  
+Scientific Hypothesis: If there is a mutation such as a polyglutamine repeat expansion in one or both of the alleles of the HTT gene, then there would be up-regulation and down-regulation of various genes and proteins that lead to the impairment of protein synthesis.  
+
+### {5 points for description of what analyses were done and how the data was downloaded for the project}  
+A pairwise sequence alignment is done to compare the Huntingtin protein produced by the normal HTT gene and that by the mutated HTT gene in Homo sapiens to see what exactly is the mutation that leads to the expression of the pathological phenotype of Huntington's disease by looking at the parts that fail to align, which will answer the first part of my scientific question. The data used for this analysis are two FASTA files containing protein sequences of the variants of the Huntingtin protein, obtained from the UniProt online database.   
+<br>
+After confirming the presence of the mutation in the Huntingtin protein, an RNA-seq analysis is done to find out which genes and proteins are up-regulated or down-regulated in the mutated groups compared to the control group, attempting to answer the second part of my scientific question. The raw count csv file was obtained from the paper: Mutant Huntingtin stalls ribosomes and represses protein synthesis in a cellular model of Huntington disease. The authors did a study involving three groups, the mHTT homozygous group, the mHTT heterozygous group, and the control group, which is homozygous for normal HTT, and got the raw counts for various genes expressed under these three conditions.  
+<br>
+The results from the above analysis are presented by a heatmap, featuring the top differfentially expressed genes from the RNA-seq, and a GO annotation to see the specific functions of these genes, testing the second part of the hypothesis and revealing whether HTT mutation can lead to impairment in protein synthesis.  
+
+# Loading in Packages  
+### {10 points for definition of each of the packages loaded}  
+
+
+### {5 points for correctly loading all of the packages needed and stating anything that needs to be done to load the packages (downloading the packages)}  
+```{r}
+
+```
+
+# Performing Bioinformatics Analysis  
+
+
+
+
