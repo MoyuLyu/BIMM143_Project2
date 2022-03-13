@@ -1,0 +1,232 @@
+---
+title: "BIMM143_Project2_R Notebook"
+output: html_notebook
+---
+# Introduction  
+### {5 points for specific, measurable, and clear scientific question}  
+Scientific Question: What is the mutation in the huntingtin (HTT) gene that leads to the symptoms of Huntington's disease, and what are the consequences of such mutation?  
+
+### {5 points for background on the protein/gene/species of interest and where the data is sourced from}  
+Huntington's disease, affecting 1 per 7300 people, is one of the most prevalent monogenic neurological disorder in the world (Fisher, 2014). The cause of this disease involves in a mutation in the Huntingtin (HTT) gene, which lead to an exceptionally long expansion of CAG trinucleotide repeat (MacDonald, 1993). This mutation results in a structural change in the Huntingtin (Htt) protein, a protein which is ubiquitously expressed throughout the body but its major function remains unknown. 
+<br>
+Although the specific function of the Htt protein is still a mystery, recent researches have revealed interaction of this protein with other proteins that are involved in the process of tranlsation, such as Prkra, Rps6, and Gnb2l1 (Culver, 2012). Specifically, introducing the mutated Htt protein can increase ribosome stalling, while removing it rescues the speed of translation (Eshraghi, 2021). Other researches have shown that the expression of mutated HTT gene could lead to translation deficit in multiple animal models (Joag, 2019), and can cause differential expression of genes involving in multiple functions such as protein folding and ribosome biogenesis (Tauber, 2011). The question here is, what specific genes are up-regulated or down-regulated which leads to the dysfunction of protein synthesis in subjects with mutated HTT gene.
+
+### {5 points for clear, specific, and measurable scientific hypothesis that is in the form of an if-then statement}  
+Scientific Hypothesis: If there is a mutation such as a polyglutamine repeat expansion in one or both of the alleles of the HTT gene, then there would be up-regulation and down-regulation of various genes and proteins that lead to the impairment of protein synthesis.  
+
+### {5 points for description of what analyses were done and how the data was downloaded for the project}  
+A pairwise sequence alignment is done to compare the Huntingtin protein produced by the normal HTT gene and that by the mutated HTT gene in Homo sapiens to see what exactly is the mutation that leads to the expression of the pathological phenotype of Huntington's disease by looking at the parts that fail to align, which will answer the first part of my scientific question. The data used for this analysis are two FASTA files containing protein sequences of the variants of the Huntingtin protein, obtained from the UniProt online database.   
+<br>
+After confirming the presence of the mutation in the Huntingtin protein, an RNA-seq analysis is done to find out which genes and proteins are up-regulated or down-regulated in the mutated groups compared to the control group, attempting to answer the second part of my scientific question. The raw count csv file was obtained from the paper: Mutant Huntingtin stalls ribosomes and represses protein synthesis in a cellular model of Huntington disease. The authors did a study involving three groups, the mHTT homozygous group, the mHTT heterozygous group, and the control group, which is homozygous for normal HTT, and got the raw counts for various genes expressed under these three conditions.  
+<br>
+The results from the above analysis are presented by a heatmap, featuring the top differfentially expressed genes from the RNA-seq, and a GO annotation to see the specific functions of these genes, testing the second part of the hypothesis and revealing whether HTT mutation can lead to impairment in protein synthesis.  
+
+# Loading in Packages  
+### {10 points for definition of each of the packages loaded}  
+Packages needed for following analysis:   
+(1) **seqinr**: used for reading in FASTA formatted files needed for pairwise sequence alignment and converting character vectors into strings.    
+    *install.packages("seqinr")*  
+  <br>
+(2) **Biostrings**: used for pulling out the scorring matrix for pairwise alignment, performing the pairwise alignment, and displaying the results from the pairwise alignment.   
+    *if (!require("BiocManager", quietly = TRUE))*   
+    *install.packages("BiocManager")*   
+    *BiocManager::install("Biostrings")*  
+  <br>
+(3) **edgeR**: used for normalizing the count data needed for RNA-seq, filtering out low-count genes,and performing the RNA-seq pipeline.   
+    *if (!require("BiocManager", quietly = TRUE))*   
+    *install.packages("BiocManager")*   
+    *BiocManager::install("edgeR")*   
+  <br>
+(4) **gplots**: used for plotting the heatmap.   
+    *install.packages('gplots')*    
+  <br>
+(5) **RColorBrewer**: used for coloring the heatmap.    
+    *install.packages("RColorBrewer")*   
+  <br>
+(6) **org.Mm.eg.db**: used for mapping the gene symbol of top expressed genes to GO ids.   
+    *if (!require("BiocManager", quietly = TRUE))*    
+    *install.packages("BiocManager")*   
+    *BiocManager::install("org.Mm.eg.db")*   
+  <br>
+(7) **GO.db**: used for mapping GO ids to GO terms for functional annotation.   
+    *if (!require("BiocManager", quietly = TRUE))*    
+    *install.packages("BiocManager")*   
+    *BiocManager::install("GO.db")*    
+    
+### {5 points for correctly loading all of the packages needed and stating anything that needs to be done to load the packages (downloading the packages)}  
+```{r}
+library(seqinr)
+library(Biostrings)
+library(edgeR)
+library(gplots)
+library(RColorBrewer)
+library(org.Mm.eg.db)
+library(GO.db)
+```
+
+# Performing Bioinformatics Analysis  
+**Bioinfo method 1: Pairwise Sequence Alignment**   
+Below is an pairwise sequence alignment comparing two protein sequences: one of which is the normal Huntingtin protein, the other is the mutated Huntingtin protein. These human protein sequences are obtained from the website UniProt as two FASTA files, and are analyzed using the Biostrings package. Pairwise sequence alignment is a way to see how similar two proteins are structural-wise, and could be used to answer the first part of my scientific question, and reveal the possible mutations involved in the Huntingtin protein in Huntington's Diseased patients.
+
+```{r}
+# Read in the FASTA files containing protein sequences of the normal and the mutated Huntingtin protein downloaded from UniProt
+# Variables such as Htt, HttSeq, and HttStr are defined outside a function, which makes them global variables. Global variables are not constrained by any specific functions, and can be used across the whole R notebook.
+Htt <- read.fasta("Human_HTT_normal.fasta")
+mHtt <- read.fasta("Human_HTT_diseased.fasta")
+
+# Store the protein sequences as vectors
+HttSeq <- Htt[[1]]
+mHttSeq <- mHtt[[1]]
+
+# Convert the vectors to strings
+HttStr <- c2s(HttSeq)
+mHttStr <- c2s(mHttSeq)
+
+# Convert the AA characters into uppercase for alignment
+HttStr <- toupper(HttStr)
+mHttStr <- toupper(mHttStr)
+
+# Load the BLOSUM50 matrix for the Needleman-Wunsch algorithm
+data("BLOSUM50")
+
+# Perform a pairwise alignment
+globalAlignHtt <- pairwiseAlignment(HttStr, mHttStr, substitutionMatrix = BLOSUM50, gapOpening = -2, gapExtension = -8, scoreOnly = FALSE)
+```
+
+```{r}
+# Write a function to display our alignment results
+# In this function, I defined many variables, such as seq1aln, gaps1, and vector1. All of the variables defined within a function are considered to be local variables. That means they can only be called on within this specific function, and cannot be accessed outside the function.
+printPairwiseAlignment <- function(alignment, chunksize=60, returnlist=FALSE)
+  {
+     # Get the packages required to run this function
+     require(Biostrings)
+  
+     # Get the alignment for the first sequence
+     seq1aln <- pattern(alignment) 
+     # Get the alignment for the second sequence
+     seq2aln <- subject(alignment) 
+     
+     # Find the number of columns in the alignment
+     alnlen  <- nchar(seq1aln)     
+     starts  <- seq(1, alnlen, by=chunksize)
+     n       <- length(starts)
+     seq1alnresidues <- 0
+     seq2alnresidues <- 0
+     for (i in 1:n) {
+        chunkseq1aln <- substring(seq1aln, starts[i], starts[i]+chunksize-1)
+        chunkseq2aln <- substring(seq2aln, starts[i], starts[i]+chunksize-1)
+        
+        # Find out how many gaps there are in chunkseq1aln
+        gaps1 <- countPattern("-",chunkseq1aln) 
+        # Find out how many gaps there are in chunkseq2aln
+        gaps2 <- countPattern("-",chunkseq2aln) 
+        
+        # Calculate how many residues of the first sequence we have printed so far in the alignment
+        seq1alnresidues <- seq1alnresidues + chunksize - gaps1
+        # Calculate how many residues of the second sequence we have printed so far in the alignment
+        seq2alnresidues <- seq2alnresidues + chunksize - gaps2
+        if (returnlist == 'FALSE')
+        {
+           print(paste(chunkseq1aln,seq1alnresidues))
+           print(paste(chunkseq2aln,seq2alnresidues))
+           print(paste(' '))
+        }
+     }
+     if (returnlist == 'TRUE')
+     {
+        vector1 <- s2c(substring(seq1aln, 1, nchar(seq1aln)))
+        vector2 <- s2c(substring(seq2aln, 1, nchar(seq2aln)))
+        mylist <- list(vector1, vector2)
+        return(mylist)
+     }
+}
+```
+
+```{r}
+# Apply the function to our results for visualization
+printPairwiseAlignment(globalAlignHtt, 60)
+```
+
+**Bioinfo method 2: RNAseq**    
+The following chunks of code performs a differential expression analysis, which is also known as RNAseq, on a csv file I obtained from the NCBI(GEO) dataset. This csv file contains the raw counts of the expression for various genes in three major test groups. One of the groups is homozygous for the mutated HTT gene, another heterozygous for the mutated HTT gene, and the last one homozygous for the normal HTT gene as a control. By normalizing these count data and perform RNAseq pipeline on them, the second part of my scientific question could be answered, and we could see whether the most differentially expressed genes are associate with protein synthesis.
+
+```{r}
+# Read in the csv file containing count data for the RNA-seq experiment, obtained from NCBI(GEO) dataset
+# The function used to read in the csv file (read.csv) is a built-in function of the basic R. This function is under a bigger category of read.table, and it takes a tabular data (such as an Excel file) as its input and turns it into a data frame object.
+seqdata <- read.csv("GSE146673_Subramaniam_RNAseq_genecounts.csv")
+
+# Have a look at our data
+head(seqdata)
+
+# Organize the data by excluding the genes with 0 read count across all samples and rename the row names by gene names
+countdata <- seqdata[rowSums(seqdata[ ,c(2:ncol(seqdata))]) > 0, ]
+renamed_countdata <- countdata[ ,-1]
+rownames(renamed_countdata) <- make.names(countdata$X, unique = TRUE)
+
+# Have a look at our data
+head(renamed_countdata)
+```
+
+```{r}
+# Create a DGEList object
+y <- DGEList(renamed_countdata)
+
+# Obtain counts-per-million
+myCPM <- cpm(renamed_countdata)
+
+# Filter lowly expressed genes
+thresh <- myCPM > 0.5
+keep <- rowSums(thresh) >= 2
+
+# Filter the DGEList object
+y <- y[keep, keep.lib.sizes=FALSE]
+
+# Normalize the counts
+logcounts <- cpm(y,log=TRUE)
+var_genes <- apply(logcounts, 1, var)
+
+# Get the top 500 most variable genes
+select_var <- names(sort(var_genes, decreasing=TRUE))[1:500]
+highly_variable_lcpm <- logcounts[select_var,]
+```
+
+**Data analysis method 1: Heat map**    
+The following codes select the top 500 differentially expressed genes from the RNAseq result and present their relative expression by a heat map. The blue indicates the down-regulation of gene, and red indicates the up-regulation of a gene. Each column represents a subject from the original experiment, and we can see the three groups: mHTT homozygous, control, and mHTT heterozygous on the labels below. Each row represents a gene, and on the right are some examples of the most differentially expressed genes.
+
+```{r}
+# Plot a heatmap to show the differentially expressed genes from the RNAseq data
+mypalette <- brewer.pal(11,"RdYlBu")
+morecols <- colorRampPalette(mypalette)
+heatmap.2(highly_variable_lcpm,col=rev(morecols(50)),trace="none", main="Top 500 most variable genes across samples",scale="row",srtCol=45)
+
+```
+
+**Data analysis method 2: GO annotation Table**    
+The following codes select the top 10 differentially expressed genes from the RNAseq result, and mapped their gene symbols to their GO ids. The GO ids are then used to annotate their corresponding GO terms to see the specific functions these genes are involved in.
+
+```{r}
+# Get the top 10 differentially expressed genes for GO annotation
+top10 <- names(sort(var_genes, decreasing=TRUE))[1:10]
+
+# Have a look at the list
+top10
+
+# Get the gene ontology and KEGG pathway of the genes
+top10_table <- select(org.Mm.eg.db, keys=top10, columns=c("GENENAME", "GO", "PATH"), keytype="SYMBOL")
+
+# Have a look at this table
+top10_table
+
+# Annotate the table based on GO ids
+GOids <- top10_table$GO
+annotated_table <- select(GO.db, keys=GOids, columns=c("TERM"), keytype="GOID")
+
+# Have a look at the annotation
+annotated_table
+```
+
+# Analysis of Results
+
+Based on the pairwise sequence alignment, we confirm the structural mutation of the Huntingtin protein. There seems to be a poly-Q mutation on the Huntingtin protein, which lead to its malfunction and ultimately causes the pathology of Huntington's Disease.   
+From the heat map, we could see that the genetic expression of each experimental group are distinct from one another, and there exists similarity across subjects within each group. Specifically, the group that is homozygous for mutated HTT gene is most different from the other groups, as it shows down-regulation of genes like Ccr1, and up-regulation of genes such as Aebp1. The other two groups are somewhat alike, but the heterozygous group still show up-regulation in genes such as Dusp27, which is not seen in the control group.   
+The data from the Gene Ontology annotation reveals a more striking result. Contrary to the hypothesis that these genes may be involved in functions that alters protein synthesis, specifically in the translation phase, the top 10 differentially expressed genes are more associated to inflammatory response and neurotoxicity. Only a few GO terms describe functions related to protein synthesis. This result may be due to the limited numebr of top expressed genes chosen for the annotation.
